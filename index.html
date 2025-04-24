@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Tangerang Health Facilities Map</title>
+    <!-- Base Leaflet CSS -->
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+    <link rel="stylesheet" href="css/leaflet-measure.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <style>
+        /* Modern styling with new color palette */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Custom map overlay styles */
+        .map-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-weight: bold;
+            pointer-events: none;
+            border-left: 4px solid #8E7DBE;
+        }
+        
+        .map-info {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 300px;
+            font-size: 12px;
+            border-left: 4px solid #8E7DBE;
+        }
+        
+        .map-info h4 {
+            margin-bottom: 8px;
+            color: #333;
+            border-bottom: 1px solid #A6D6D6;
+            padding-bottom: 5px;
+        }
+        
+        /* Search control styling */
+        .custom-search-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            width: 300px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+        }
+        
+        .custom-search-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .custom-search-button {
+            background-color: #8E7DBE;
+            color: white;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .custom-search-button:hover {
+            background-color: #7867A7;
+        }
+        
+        /* Measure control styling */
+        .measure-control {
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            cursor: pointer;
+        }
+        
+        .measure-control i {
+            display: block;
+            padding: 7px;
+            font-size: 16px;
+            color: #555;
+        }
+        
+        /* Improve popup styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 5px;
+            border-left: 4px solid #8E7DBE;
+        }
+        
+        .leaflet-popup-content {
+            margin: 12px;
+            line-height: 1.5;
+        }
+        
+        .facility-popup h3 {
+            margin-bottom: 8px;
+            color: #333;
+            border-bottom: 1px solid #A6D6D6;
+            padding-bottom: 5px;
+        }
+        
+        .facility-popup p {
+            margin: 5px 0;
+        }
+        
+        /* Legend styling */
+        .legend-container {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #A6D6D6;
+            padding-bottom: 5px;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+        }
+        
+        /* Control panel styles */
+        .leaflet-control-layers {
+            border-radius: 5px !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2) !important;
+            border: none !important;
+        }
+        
+        .leaflet-control-layers-expanded {
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+        }
+        
+        /* Custom controls positioning */
+        .control-group {
+            position: absolute;
+            top: 60px;
+            left: 10px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        /* District label styling */
+        .district-label {
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* Logo styling */
+        .map-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background-color: white;
+            padding: 5px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-height: 50px;
+            max-width: 200px;
+        }
+        
+        .map-logo img {
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="map-title">Peta Fasilitas Kesehatan Kota Tangerang</div>
+    
+    <!-- Custom search bar -->
+    <div class="custom-search-container">
+        <input type="text" class="custom-search-input" placeholder="Cari lokasi..." id="searchInput">
+        <button class="custom-search-button" id="searchButton">
+            <i class="fa fa-search"></i>
+        </button>
+    </div>
+    
+  
+    
+    <script src="js/leaflet.js"></script>
+    <script src="js/L.Control.Layers.Tree.min.js"></script>
+    <script src="js/leaflet.rotatedMarker.js"></script>
+    <script src="js/leaflet.pattern.js"></script>
+    <script src="js/leaflet-hash.js"></script>
+    <script src="js/Autolinker.min.js"></script>
+    <script src="js/rbush.min.js"></script>
+    <script src="js/labelgun.min.js"></script>
+    <script src="js/labels.js"></script>
+    <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+    <script src="js/leaflet-measure.js"></script>
+    
+    <!-- Data scripts -->
+    <script src="data/Admin_Kecamatan_TNG_1.js"></script>
+    <script src="data/Jalan_TNG_2.js"></script>
+    <script src="data/Puskesmas_TNG_3.js"></script>
+    <script src="data/Rumah_Sakit_TNG_4.js"></script>
+    
+    <script>
+        // Initialize the map
+        var map = L.map('map', {
+            zoomControl: false,
+            maxZoom: 28,
+            minZoom: 1
+        }).fitBounds([[-6.32997544350596, 106.60429412142966], [-6.13804902084058, 106.81242930147945]]);
+        
+        // Add zoom control in custom group
+        L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        
+        // Add hash for URL sharing capability
+        var hash = new L.Hash(map);
+        
+        // Add OpenStreetMap base layer
+        var baseLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Function to highlight feature on mouseover
+        function highlightFeature(e) {
+            var layer = e.target;
+            
+            if (layer.feature.geometry.type === 'LineString' || layer.feature.geometry.type === 'MultiLineString') {
+                layer.setStyle({
+                    color: '#8E7DBE',
+                    weight: 4
+                });
+            } else {
+                layer.setStyle({
+                    fillColor: '#8E7DBE',
+                    fillOpacity: 0.7
+                });
+            }
+            layer.openPopup();
+        }
+        
+        // Function to reset style on mouseout
+        function resetFeatureStyle(e) {
+            for (var i in e.target._eventParents) {
+                if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                    e.target._eventParents[i].resetStyle(e.target);
+                }
+            }
+            if (typeof e.target.closePopup == 'function') {
+                e.target.closePopup();
+            } else {
+                e.target.eachLayer(function(feature) {
+                    feature.closePopup();
+                });
+            }
+        }
+        
+        // Function to clean up popup content
+        function cleanPopupContent(content, feature) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var rows = tempDiv.querySelectorAll('tr');
+            for (var i = 0; i < rows.length; i++) {
+                var td = rows[i].querySelector('td');
+                if (td && td.textContent.trim() === '') {
+                    rows[i].parentNode.removeChild(rows[i]);
+                }
+            }
+            return tempDiv.innerHTML;
+        }
+        
+        // Style function for district areas with new color palette
+        function getDistrictStyle(feature) {
+            // Using the provided color palette
+            var districtColors = {
+                'Batuceper': '#F7CFD8', // Light pink
+                'Benda': '#F4F8D3',     // Light yellow-green
+                'Cibodas': '#A6D6D6',   // Light teal
+                'Ciledug': '#8E7DBE',   // Lavender
+                'Cipondoh': '#F7CFD8',  // Light pink
+                'Jatiuwung': '#F4F8D3', // Light yellow-green
+                'Karang Tengah': '#A6D6D6', // Light teal
+                'Karawaci': '#8E7DBE',  // Lavender
+                'Larangan': '#F7CFD8',  // Light pink
+                'Periuk': '#F4F8D3',    // Light yellow-green
+                'Pinang': '#A6D6D6',    // Light teal
+                'Tangerang': '#8E7DBE'  // Lavender
+            };
+            
+            return {
+                fillColor: districtColors[feature.properties.WADMKC] || '#CCCCCC',
+                weight: 1.5,
+                opacity: 1,
+                color: '#555555',
+                fillOpacity: 0.7
+            };
+        }
+        
+        // Road style function
+        function getRoadStyle(feature) {
+            var roadTypes = {
+                'Jalan Arteri': {color: '#8E7DBE', weight: 3},        // Lavender
+                'Jalan Kolektor': {color: '#A6D6D6', weight: 2.5},    // Light teal
+                'Jalan Tol Dua Jalur Dengan Pemisah Fisik': {color: '#F7CFD8', weight: 3} // Light pink
+            };
+            
+            return {
+                color: roadTypes[feature.properties.REMARK]?.color || '#888888',
+                weight: roadTypes[feature.properties.REMARK]?.weight || 1,
+                opacity: 0.8
+            };
+        }
+        
+        // Create bounds group for layers
+        var boundsGroup = new L.featureGroup([]);
+        
+        // Add district layer
+        var districtLayer = new L.geoJson(json_Admin_Kecamatan_TNG_1, {
+            style: getDistrictStyle,
+            onEachFeature: function(feature, layer) {
+                // Add district name as tooltip
+                layer.bindTooltip(feature.properties.WADMKC, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'district-label'
+                });
+                
+                // Add popup
+                var popupContent = '<div><strong>' + feature.properties.WADMKC + '</strong></div>';
+                layer.bindPopup(popupContent);
+                
+                // Add event listeners
+                layer.on({
+                    mouseover: highlightFeature,
+                    mouseout: resetFeatureStyle
+                });
+            }
+        }).addTo(map);
+        boundsGroup.addLayer(districtLayer);
+        
+        // Add road layer
+        var roadLayer = new L.geoJson(json_Jalan_TNG_2, {
+            style: getRoadStyle,
+            onEachFeature: function(feature, layer) {
+                var popupContent = '<div><strong>' + feature.properties.REMARK + '</strong></div>';
+                layer.bindPopup(popupContent);
+                
+                layer.on({
+                    mouseover: highlightFeature,
+                    mouseout: resetFeatureStyle
+                });
+            }
+        }).addTo(map);
+        boundsGroup.addLayer(roadLayer);
+        
+        // Create health facility icons
+        var clinicIcon = L.icon({
+            iconUrl: 'markers/Puskesmas_TNG_3.svg',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+            popupAnchor: [0, -12],
+            // If the SVG doesn't load, use a colored dot
+            shadowUrl: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Ccircle cx=\'12\' cy=\'12\' r=\'10\' fill=\'%23F7CFD8\' stroke=\'%23fff\' stroke-width=\'2\'/%3E%3Ctext x=\'12\' y=\'16\' text-anchor=\'middle\' fill=\'%23333\' font-family=\'Arial\' font-weight=\'bold\' font-size=\'12\' stroke=\'%23fff\' stroke-width=\'0.5\'%3EP%3C/text%3E%3C/svg%3E'
+        });
+        
+        var hospitalIcon = L.icon({
+            iconUrl: 'markers/Rumah_Sakit_TNG_4.svg',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            popupAnchor: [0, -14],
+            // If the SVG doesn't load, use a colored dot with H
+            shadowUrl: 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\' viewBox=\'0 0 28 28\'%3E%3Ccircle cx=\'14\' cy=\'14\' r=\'12\' fill=\'%238E7DBE\' stroke=\'%23fff\' stroke-width=\'2\'/%3E%3Ctext x=\'14\' y=\'19\' text-anchor=\'middle\' fill=\'%23fff\' font-family=\'Arial\' font-weight=\'bold\' font-size=\'14\'%3EH%3C/text%3E%3C/svg%3E'
+        });
+        
+        // Add clinic layer
+        var clinicLayer = new L.geoJson(json_Puskesmas_TNG_3, {
+            pointToLayer: function(feature, latlng) {
+                return L.marker(latlng, {icon: clinicIcon});
+            },
+            onEachFeature: function(feature, layer) {
+                var popupContent = '<div class="facility-popup">' +
+                    '<h3>' + feature.properties.NAMOBJ + '</h3>' +
+                    '<p><strong>Jenis:</strong> ' + (feature.properties.JPLPKM || '-') + '</p>' +
+                    '<p><strong>Kategori:</strong> ' + (feature.properties.PKMKAT || '-') + '</p>' +
+                    '</div>';
+                
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(map);
+        boundsGroup.addLayer(clinicLayer);
+        
+        // Add hospital layer
+        var hospitalLayer = new L.geoJson(json_Rumah_Sakit_TNG_4, {
+            pointToLayer: function(feature, latlng) {
+                return L.marker(latlng, {icon: hospitalIcon});
+            },
+            onEachFeature: function(feature, layer) {
+                var popupContent = '<div class="facility-popup">' +
+                    '<h3>' + feature.properties.namobj + '</h3>' +
+                    '<p>' + (feature.properties.rsalamat || '') + '</p>' +
+                    '<p><strong>Jenis Layanan:</strong> ' + (feature.properties.jplyrs || '-') + '</p>' +
+                    '<p><strong>Tipe:</strong> ' + (feature.properties.TIPRST || '-') + '</p>' +
+                    '</div>';
+                
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(map);
+        boundsGroup.addLayer(hospitalLayer);
+        
+        // Add measure control with custom styling
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares',
+            activeColor: '#8E7DBE',
+            completedColor: '#F7CFD8'
+        });
+        measureControl.addTo(map);
+        
+        // Style measure control with Font Awesome
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '<i class="fas fa-ruler"></i>';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].title = 'Alat Ukur';
+        
+        // Create layer control with custom styling
+        var baseMaps = {
+            "OpenStreetMap": baseLayer
+        };
+        
+        var overlayMaps = {
+            "Kecamatan": districtLayer,
+            "Jalan": roadLayer,
+            "Puskesmas": clinicLayer,
+            "Rumah Sakit": hospitalLayer
+        };
+        
+        L.control.layers(baseMaps, overlayMaps, {
+            collapsed: false,
+            position: 'topright'
+        }).addTo(map);
+        
+        // Add info panel
+        var info = L.control({position: 'bottomright'});
+        info.onAdd = function(map) {
+            this._div = L.DomUtil.create('div', 'map-info');
+            this._div.innerHTML = '<h4>Peta Fasilitas Kesehatan</h4>' +
+                '<p>Kota Tangerang memiliki ' + json_Puskesmas_TNG_3.features.length + ' Puskesmas dan ' + 
+                json_Rumah_Sakit_TNG_4.features.length + ' Rumah Sakit.</p>' +
+                '<p>Klik pada marker untuk melihat detail fasilitas.</p>';
+            return this._div;
+        };
+        info.addTo(map);
+        
+        // Connect the custom search functionality
+        document.getElementById('searchButton').addEventListener('click', function() {
+            performSearch();
+        });
+        
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        function performSearch() {
+            var query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                // Use leaflet-control-geocoder if available
+                if (typeof L.Control.Geocoder !== 'undefined') {
+                    var geocoder = L.Control.Geocoder.nominatim();
+                    geocoder.geocode(query, function(results) {
+                        if (results && results.length > 0) {
+                            var bbox = results[0].bbox;
+                            if (bbox) {
+                                map.fitBounds([
+                                    [bbox[0], bbox[2]],
+                                    [bbox[1], bbox[3]]
+                                ]);
+                            } else if (results[0].center) {
+                                map.setView(results[0].center, 15);
+                            }
+                        } else {
+                            alert('Lokasi tidak ditemukan. Coba kata kunci lain.');
+                        }
+                    });
+                } else {
+                    // Simple fallback to search in GeoJSON properties
+                    var found = false;
+                    
+                    // Search in districts
+                    districtLayer.eachLayer(function(layer) {
+                        if (layer.feature.properties.WADMKC.toLowerCase().includes(query.toLowerCase())) {
+                            map.fitBounds(layer.getBounds());
+                            layer.openPopup();
+                            found = true;
+                        }
+                    });
+                    
+                    // Search in hospitals
+                    if (!found) {
+                        hospitalLayer.eachLayer(function(layer) {
+                            if (layer.feature.properties.namobj.toLowerCase().includes(query.toLowerCase())) {
+                                map.setView(layer.getLatLng(), 17);
+                                layer.openPopup();
+                                found = true;
+                            }
+                        });
+                    }
+                    
+                    // Search in clinics
+                    if (!found) {
+                        clinicLayer.eachLayer(function(layer) {
+                            if (layer.feature.properties.NAMOBJ.toLowerCase().includes(query.toLowerCase())) {
+                                map.setView(layer.getLatLng(), 17);
+                                layer.openPopup();
+                                found = true;
+                            }
+                        });
+                    }
+                    
+                    if (!found) {
+                        alert('Lokasi tidak ditemukan. Coba kata kunci lain.');
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
